@@ -1,61 +1,40 @@
+import os
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 
-# Dataset load karo
-df = pd.read_csv("student_lifestyle_dataset.csv")
+# --- Step 1: Auto-detect CSV file in same folder ---
+files = [f for f in os.listdir() if f.endswith(".csv")]
+if not files:
+    raise FileNotFoundError("No CSV file found in this folder.")
+csv_file = files[0]   # first CSV file pick
 
-# ----------- BASIC INFO -------------
-print("\nDataset Shape:", df.shape)
-print("\nDataset Head:\n", df.head())
-print("\nSummary Statistics:\n", df.describe())
+print(f"📂 Using dataset: {csv_file}")
 
-# ----------- VISUALIZATION -------------
-sns.set(style="whitegrid", palette="muted", font_scale=1.2)
+# --- Step 2: Load data ---
+data = pd.read_csv(csv_file)
+print("✅ Dataset loaded successfully!")
+print("📊 First 5 rows:\n", data.head())
 
-# Distribution plots
-plt.figure(figsize=(15, 6))
+# --- Step 3: Example ML (Predict GPA from lifestyle features if available) ---
+# NOTE: Change column names if your dataset has different ones
+if "GPA" in data.columns:
+    X = data.drop("GPA", axis=1, errors="ignore").select_dtypes(include=["int64", "float64"])
+    y = data["GPA"]
 
-for i, col in enumerate(["Study_Hours_Per_Day", "Sleep_Hours_Per_Day", "GPA"], 1):
-    plt.subplot(1, 3, i)
-    sns.histplot(df[col], bins=20, kde=True, color="royalblue")
-    plt.title(f"Distribution of {col}", fontsize=14)
-    plt.xlabel(col)
-    plt.ylabel("Count")
+    # train-test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-plt.tight_layout()
-plt.show()
+    # Linear Regression Model
+    model = LinearRegression()
+    model.fit(X_train, y_train)
 
-# ----------- CORRELATION HEATMAP -------------
-plt.figure(figsize=(8, 6))
-sns.heatmap(df.corr(), annot=True, cmap="coolwarm", fmt=".2f")
-plt.title("Correlation Heatmap", fontsize=16)
-plt.show()
+    # Prediction + Accuracy
+    y_pred = model.predict(X_test)
+    score = r2_score(y_test, y_pred)
 
-# ----------- SCATTERPLOTS (relationships) -------------
-plt.figure(figsize=(12, 5))
-
-plt.subplot(1, 2, 1)
-sns.scatterplot(x="Study_Hours_Per_Day", y="GPA", data=df, hue="Sleep_Hours_Per_Day", palette="viridis")
-plt.title("Study Hours vs GPA", fontsize=14)
-
-plt.subplot(1, 2, 2)
-sns.scatterplot(x="Sleep_Hours_Per_Day", y="GPA", data=df, hue="Study_Hours_Per_Day", palette="plasma")
-plt.title("Sleep Hours vs GPA", fontsize=14)
-
-plt.tight_layout()
-plt.show()
-
-# ----------- CLUSTERING (BONUS AI) -------------
-scaler = StandardScaler()
-X = scaler.fit_transform(df[["Study_Hours_Per_Day", "Sleep_Hours_Per_Day", "GPA"]])
-
-kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-df["Cluster"] = kmeans.fit_predict(X)
-
-plt.figure(figsize=(8, 6))
-sns.scatterplot(x="Study_Hours_Per_Day", y="Sleep_Hours_Per_Day", hue="Cluster", data=df, palette="Set2")
-plt.title("Student Lifestyle Clusters", fontsize=16)
-plt.show()
+    print("\n📈 Model trained successfully!")
+    print("🔑 R² Score:", round(score, 3))
+else:
+    print("\n⚠️ 'GPA' column not found. Please update target column name.")
