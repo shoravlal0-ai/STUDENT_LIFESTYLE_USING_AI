@@ -1,90 +1,88 @@
-# ============================
-# Student Lifestyle Analysis
-# ============================
-
-# 1. Import libraries
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score, mean_squared_error
 
-# 2. Load dataset
-df = pd.read_csv("student_lifestyle_dataset.csv")
+# Set visualization style
+sns.set(style="whitegrid", palette="muted", font_scale=1.2)
 
-# 3. Basic info
-print("Dataset Shape:", df.shape)
-print("\nFirst 5 Rows:\n", df.head())
-print("\nSummary:\n", df.describe())
+def load_data(file_path):
+    """Load dataset from a CSV file."""
+    try:
+        df = pd.read_csv(file_path)
+        print("\nDataset Shape:", df.shape)
+        print("\nDataset Head:\n", df.head())
+        print("\nSummary Statistics:\n", df.describe())
+        return df
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return None
 
-# 4. Visualizations
-plt.figure(figsize=(10,6))
-df[['Study_Hours_Per_Day','Sleep_Hours_Per_Day','GPA','Stress_Level']].hist(bins=20, figsize=(12,8))
-plt.suptitle("Distribution of Key Features")
-plt.show()
+def plot_distribution(df):
+    """Plot distribution of key features."""
+    plt.figure(figsize=(15, 6))
+    for i, col in enumerate(["Study_Hours_Per_Day", "Sleep_Hours_Per_Day", "GPA"], 1):
+        plt.subplot(1, 3, i)
+        sns.histplot(df[col], bins=20, kde=True, color="royalblue")
+        plt.title(f"Distribution of {col}", fontsize=14)
+        plt.xlabel(col)
+        plt.ylabel("Count")
+    plt.tight_layout()
+    plt.show()
 
-# Correlation Heatmap
-plt.figure(figsize=(8,6))
-sns.heatmap(df.drop("Student_ID", axis=1).corr(), annot=True, cmap="coolwarm")
-plt.title("Correlation Heatmap")
-plt.show()
+def plot_correlation_heatmap(df):
+    """Plot correlation heatmap of the dataset."""
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(df.corr(), annot=True, cmap="coolwarm", fmt=".2f", square=True, cbar_kws={"shrink": .8})
+    plt.title("Correlation Heatmap", fontsize=16)
+    plt.show()
 
-# Scatterplot GPA vs Study Hours
-plt.figure(figsize=(6,4))
-sns.scatterplot(x="Study_Hours_Per_Day", y="GPA", data=df)
-plt.title("Study Hours vs GPA")
-plt.show()
+def plot_scatterplots(df):
+    """Plot scatterplots to visualize relationships between features."""
+    plt.figure(figsize=(12, 5))
 
-# Scatterplot Sleep vs Stress
-plt.figure(figsize=(6,4))
-sns.scatterplot(x="Sleep_Hours_Per_Day", y="Stress_Level", data=df)
-plt.title("Sleep Hours vs Stress Level")
-plt.show()
+    plt.subplot(1, 2, 1)
+    sns.scatterplot(x="Study_Hours_Per_Day", y="GPA", data=df, hue="Sleep_Hours_Per_Day", palette="viridis", alpha=0.7)
+    plt.title("Study Hours vs GPA", fontsize=14)
+    plt.xlabel("Study Hours Per Day")
+    plt.ylabel("GPA")
 
-# 5. Clustering Students
-X = df.drop(["Student_ID","GPA","Stress_Level"], axis=1)   # use lifestyle features only
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+    plt.subplot(1, 2, 2)
+    sns.scatterplot(x="Sleep_Hours_Per_Day", y="GPA", data=df, hue="Study_Hours_Per_Day", palette="plasma", alpha=0.7)
+    plt.title("Sleep Hours vs GPA", fontsize=14)
+    plt.xlabel("Sleep Hours Per Day")
+    plt.ylabel("GPA")
 
-kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-df['Lifestyle_Cluster'] = kmeans.fit_predict(X_scaled)
+    plt.tight_layout()
+    plt.show()
 
-print("\nCluster Counts:\n", df['Lifestyle_Cluster'].value_counts())
+def perform_clustering(df):
+    """Perform KMeans clustering on the dataset and visualize the clusters."""
+    scaler = StandardScaler()
+    X = scaler.fit_transform(df[["Study_Hours_Per_Day", "Sleep_Hours_Per_Day", "GPA"]])
 
-plt.figure(figsize=(6,4))
-sns.scatterplot(x=df['Study_Hours_Per_Day'], y=df['Sleep_Hours_Per_Day'], hue=df['Lifestyle_Cluster'], palette="deep")
-plt.title("Clusters of Student Lifestyle")
-plt.show()
+    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+    df["Cluster"] = kmeans.fit_predict(X)
 
-# 6. GPA Prediction (Regression)
-X = df[['Study_Hours_Per_Day','Sleep_Hours_Per_Day','Extracurricular_Hours_Per_Day','Social_Hours_Per_Day','Physical_Activity_Hours_Per_Day']]
-y = df['GPA']
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(x="Study_Hours_Per_Day", y="Sleep_Hours_Per_Day", hue="Cluster", data=df, palette="Set2", alpha=0.7)
+    plt.title("Student Lifestyle Clusters", fontsize=16)
+    plt.xlabel("Study Hours Per Day")
+    plt.ylabel("Sleep Hours Per Day")
+    plt.legend(title='Cluster')
+    plt.show()
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+def main():
+    """Main function to execute the analysis."""
+    file_path = "student_lifestyle_dataset.csv"
+    df = load_data(file_path)
+    
+    if df is not None:
+        plot_distribution(df)
+        plot_correlation_heatmap(df)
+        plot_scatterplots(df)
+        perform_clustering(df)
 
-model_gpa = LinearRegression()
-model_gpa.fit(X_train, y_train)
-
-y_pred = model_gpa.predict(X_test)
-
-print("\nGPA Prediction Results:")
-print("R2 Score:", r2_score(y_test, y_pred))
-print("MSE:", mean_squared_error(y_test, y_pred))
-
-# 7. Stress Prediction (Regression)
-y2 = df['Stress_Level']
-
-X_train, X_test, y_train, y_test = train_test_split(X, y2, test_size=0.2, random_state=42)
-
-model_stress = LinearRegression()
-model_stress.fit(X_train, y_train)
-
-y_pred2 = model_stress.predict(X_test)
-
-print("\nStress Prediction Results:")
-print("R2 Score:", r2_score(y_test, y_pred2))
-print("MSE:", mean_squared_error(y_test, y_pred2))
+if __name__ == "__main__":
+    main()
