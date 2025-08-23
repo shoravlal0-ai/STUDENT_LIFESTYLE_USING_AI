@@ -1,4 +1,14 @@
 import pandas as pd
+
+df = pd.read_csv("student_lifestyle_dataset.csv")
+
+print("Shape of dataset:", df.shape)
+print("Columns:", df.columns)
+print(df.head())
+
+
+
+import pandas as pd
 import matplotlib.pyplot as plt
 
 # CSV load karo
@@ -31,3 +41,4 @@ if "SleepHours" in df.columns:
     plt.show()
 else:
     print("⚠️ 'SleepHours' column not found in dataset.")
+
